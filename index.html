@@ -32,12 +32,21 @@ body{
   margin-bottom:16px;
 }
 
-button{
+input,select,button{
   padding:14px;
   font-size:16px;
   border-radius:10px;
   border:none;
   margin:6px;
+}
+
+input,select{
+  background:#020617;
+  color:white;
+  border:1px solid #1e293b;
+}
+
+button{
   background:#1e293b;
   color:white;
 }
@@ -56,9 +65,7 @@ button{
   font-weight:bold;
 }
 
-#winnerScreen{
-  display:none;
-}
+#winnerScreen{ display:none; }
 </style>
 </head>
 
@@ -78,6 +85,7 @@ button{
 <div class="card" id="game" style="display:none">
   <h2 id="currentPlayer"></h2>
   <p>Mål: <strong id="target"></strong></p>
+  <p>Pile tilbage: <strong id="darts"></strong></p>
 
   <div id="controls"></div>
 
@@ -94,10 +102,7 @@ button{
 <script>
 const targets=[15,16,"D",17,"T",18,41,19,20,"B"];
 
-let players=[];
-let current=0;
-let hit=false;
-let history=[];
+let players=[],current=0,darts=3,hit=false,history=[];
 
 const playersDiv=document.getElementById("players");
 const game=document.getElementById("game");
@@ -106,12 +111,13 @@ const resultsDiv=document.getElementById("results");
 const playerName=document.getElementById("playerName");
 const currentPlayer=document.getElementById("currentPlayer");
 const targetEl=document.getElementById("target");
+const dartsEl=document.getElementById("darts");
 const controls=document.getElementById("controls");
 
 function addPlayer(){
-  const name=playerName.value.trim();
-  if(!name)return;
-  players.push({name,score:0,target:0});
+  const n=playerName.value.trim();
+  if(!n)return;
+  players.push({name:n,score:0,target:0});
   playerName.value="";
   game.style.display="block";
   update();
@@ -119,13 +125,15 @@ function addPlayer(){
 
 function startNewGame(){
   players.forEach(p=>{p.score=0;p.target=0});
-  current=0;hit=false;history=[];
+  current=0;darts=3;hit=false;history=[];
   winnerScreen.style.display="none";
   game.style.display="block";
   update();
 }
 
 function record(points,success){
+  if(darts===0)return;
+  darts--;
   history.push({points,success});
   if(success){
     players[current].score+=points;
@@ -138,9 +146,10 @@ function miss(){ record(0,false); }
 
 function undo(){
   if(!history.length)return;
-  const last=history.pop();
-  if(last.success){
-    players[current].score-=last.points;
+  const l=history.pop();
+  darts++;
+  if(l.success){
+    players[current].score-=l.points;
     hit=history.some(h=>h.success);
   }
   update();
@@ -152,7 +161,7 @@ function nextTurn(){
   }
   players[current].target++;
   current=(current+1)%players.length;
-  hit=false;history=[];
+  darts=3;hit=false;history=[];
   update();
 }
 
@@ -166,11 +175,10 @@ function update(){
     return;
   }
 
-  const p=players[current];
-  const t=targets[p.target];
-
+  const p=players[current],t=targets[p.target];
   currentPlayer.innerText="Tur: "+p.name;
   targetEl.innerText=t;
+  dartsEl.innerText=darts;
   controls.innerHTML="";
 
   if(t===41){
@@ -182,14 +190,23 @@ function update(){
 
   if(t==="D"){
     controls.innerHTML=`
-      <button onclick="record(2,true)">Double</button>
+      <select id="field">
+        <option value="">Vælg felt</option>
+        ${[...Array(20)].map((_,i)=>`<option>${i+1}</option>`).join("")}
+        <option value="bull">Bull</option>
+      </select><br>
+      <button class="primary" onclick="doubleHit()">Kast</button>
       <button class="danger" onclick="miss()">Miss</button>`;
     return;
   }
 
   if(t==="T"){
     controls.innerHTML=`
-      <button onclick="record(3,true)">Triple</button>
+      <select id="field">
+        <option value="">Vælg felt</option>
+        ${[...Array(20)].map((_,i)=>`<option>${i+1}</option>`).join("")}
+      </select><br>
+      <button class="primary" onclick="tripleHit()">Kast</button>
       <button class="danger" onclick="miss()">Miss</button>`;
     return;
   }
@@ -210,10 +227,22 @@ function update(){
   }
 }
 
+function doubleHit(){
+  const v=document.getElementById("field").value;
+  if(!v)return;
+  if(v==="bull") record(50,true);
+  else record(parseInt(v)*2,true);
+}
+
+function tripleHit(){
+  const v=document.getElementById("field").value;
+  if(!v)return;
+  record(parseInt(v)*3,true);
+}
+
 function showWinner(){
   game.style.display="none";
   winnerScreen.style.display="block";
-
   const sorted=[...players].sort((a,b)=>b.score-a.score);
   resultsDiv.innerHTML=sorted.map((p,i)=>
     `<p>${i===0?'🥇':i===1?'🥈':i===2?'🥉':''} ${p.name}: ${p.score}</p>`
