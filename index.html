@@ -7,7 +7,8 @@
 
 <style>
 :root {
-  --bg: #020617;
+  --bg1: #020617;
+  --bg2: #020617;
   --card: #0f172a;
   --accent: #22c55e;
   --blue: #38bdf8;
@@ -32,16 +33,16 @@ h1 {
 
 .card {
   background: linear-gradient(180deg, #0f172a, #020617);
-  border-radius: 18px;
-  padding: 18px;
-  margin-bottom: 18px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.7);
 }
 
 button, select, input {
-  padding: 12px 14px;
+  padding: 14px 16px;
   margin: 6px;
-  border-radius: 12px;
+  border-radius: 14px;
   font-size: 16px;
   border: none;
 }
@@ -54,28 +55,36 @@ input, select {
 
 button {
   cursor: pointer;
-  transition: transform .05s ease, opacity .2s;
+  transition: transform .05s ease, opacity .2s, box-shadow .2s;
 }
-button:active { transform: scale(0.97); }
-button:hover { opacity: .9; }
+button:active { transform: scale(0.96); }
+button:hover { opacity: .95; }
 
-.primary { background: var(--accent); color: black; }
+.primary { background: var(--accent); color: black; box-shadow: 0 0 15px #22c55e55; }
 .secondary { background: var(--blue); color: black; }
 .danger { background: var(--danger); color: white; }
 
 .player {
-  padding: 8px 0;
+  padding: 10px 0;
   border-bottom: 1px solid #1e293b;
   color: var(--muted);
 }
 .player.active {
   color: var(--accent);
   font-weight: bold;
+  text-shadow: 0 0 10px #22c55e88;
 }
 
 .big {
   font-size: 18px;
-  padding: 14px 18px;
+  padding: 16px 20px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
 }
 </style>
 </head>
@@ -132,7 +141,7 @@ function startNewGame() {
   updateUI();
 }
 
-function throwDart(mult, fieldOverride=null) {
+function throwDart(mult, field=null) {
   if (darts === 0) return;
 
   const player = players[currentPlayerIndex];
@@ -145,9 +154,9 @@ function throwDart(mult, fieldOverride=null) {
     points = target * mult;
   }
 
-  if ((target === "D" || target === "T") && fieldOverride > 0) {
+  if ((target === "D" || target === "T") && field) {
     success = true;
-    points = fieldOverride * mult;
+    points = field * mult;
   }
 
   if (target === "B") {
@@ -163,6 +172,13 @@ function throwDart(mult, fieldOverride=null) {
     hitThisTurn = true;
   }
 
+  updateUI();
+}
+
+function miss() {
+  if (darts === 0) return;
+  darts--;
+  history.push({ points: 0, success: false });
   updateUI();
 }
 
@@ -206,18 +222,23 @@ function updateUI() {
 
   if (typeof t === "number") {
     controls.innerHTML = `
-      <button class="secondary big" onclick="throwDart(1)">Single</button>
-      <button class="secondary big" onclick="throwDart(2)">Double</button>
-      <button class="secondary big" onclick="throwDart(3)">Triple</button>`;
+      <div class="row">
+        <button class="secondary big" onclick="throwDart(1)">Single</button>
+        <button class="secondary big" onclick="throwDart(2)">Double</button>
+        <button class="secondary big" onclick="throwDart(3)">Triple</button>
+      </div>`;
   } else if (t === "D" || t === "T") {
-    let opts = `<option value="0">Miss (0)</option>`;
+    let opts = "";
     for (let i=1;i<=20;i++) opts += `<option>${i}</option>`;
     controls.innerHTML = `
-      <select id="fieldSelect">${opts}</select>
-      <button class="secondary big"
-        onclick="throwDart(${t==='D'?2:3}, parseInt(fieldSelect.value))">
-        Kast
-      </button>`;
+      <div class="row">
+        <button class="danger big" onclick="miss()">Miss</button>
+        <select id="fieldSelect">${opts}</select>
+        <button class="secondary big"
+          onclick="throwDart(${t==='D'?2:3}, parseInt(fieldSelect.value))">
+          Kast
+        </button>
+      </div>`;
   } else if (t === "B") {
     controls.innerHTML =
       `<button class="secondary big" onclick="throwDart(1)">Bull</button>`;
