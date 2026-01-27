@@ -32,21 +32,12 @@ body{
   margin-bottom:16px;
 }
 
-button,input,select{
+button{
   padding:14px;
   font-size:16px;
   border-radius:10px;
   border:none;
   margin:6px;
-}
-
-input,select{
-  background:#020617;
-  color:white;
-  border:1px solid #1e293b;
-}
-
-button{
   background:#1e293b;
   color:white;
 }
@@ -64,6 +55,10 @@ button{
   color:#22c55e;
   font-weight:bold;
 }
+
+#winnerScreen{
+  display:none;
+}
 </style>
 </head>
 
@@ -71,7 +66,7 @@ button{
 
 <div class="logo">SKOVHUGGER</div>
 
-<div class="card">
+<div class="card" id="setup">
   <input id="playerName" placeholder="Spillernavn">
   <br>
   <button class="primary" onclick="addPlayer()">Tilføj spiller</button>
@@ -83,7 +78,6 @@ button{
 <div class="card" id="game" style="display:none">
   <h2 id="currentPlayer"></h2>
   <p>Mål: <strong id="target"></strong></p>
-  <p>Pile tilbage: <strong id="darts"></strong></p>
 
   <div id="controls"></div>
 
@@ -91,21 +85,27 @@ button{
   <button class="danger" onclick="nextTurn()">Næste tur</button>
 </div>
 
+<div class="card" id="winnerScreen">
+  <h2>🏆 Resultat</h2>
+  <div id="results"></div>
+  <button class="primary" onclick="startNewGame()">Spil igen</button>
+</div>
+
 <script>
 const targets=[15,16,"D",17,"T",18,41,19,20,"B"];
 
 let players=[];
 let current=0;
-let darts=3;
 let hit=false;
 let history=[];
 
 const playersDiv=document.getElementById("players");
 const game=document.getElementById("game");
+const winnerScreen=document.getElementById("winnerScreen");
+const resultsDiv=document.getElementById("results");
 const playerName=document.getElementById("playerName");
 const currentPlayer=document.getElementById("currentPlayer");
 const targetEl=document.getElementById("target");
-const dartsEl=document.getElementById("darts");
 const controls=document.getElementById("controls");
 
 function addPlayer(){
@@ -119,13 +119,13 @@ function addPlayer(){
 
 function startNewGame(){
   players.forEach(p=>{p.score=0;p.target=0});
-  current=0;darts=3;hit=false;history=[];
+  current=0;hit=false;history=[];
+  winnerScreen.style.display="none";
+  game.style.display="block";
   update();
 }
 
 function record(points,success){
-  if(darts===0)return;
-  darts--;
   history.push({points,success});
   if(success){
     players[current].score+=points;
@@ -139,7 +139,6 @@ function miss(){ record(0,false); }
 function undo(){
   if(!history.length)return;
   const last=history.pop();
-  darts++;
   if(last.success){
     players[current].score-=last.points;
     hit=history.some(h=>h.success);
@@ -153,7 +152,7 @@ function nextTurn(){
   }
   players[current].target++;
   current=(current+1)%players.length;
-  darts=3;hit=false;history=[];
+  hit=false;history=[];
   update();
 }
 
@@ -162,41 +161,35 @@ function update(){
     `<div class="player ${i===current?'active':''}">${p.name}: ${p.score}</div>`
   ).join("");
 
+  if(players.every(p=>p.target>=targets.length)){
+    showWinner();
+    return;
+  }
+
   const p=players[current];
   const t=targets[p.target];
 
   currentPlayer.innerText="Tur: "+p.name;
-  targetEl.innerText=t ?? "FÆRDIG 🎉";
-  dartsEl.innerText=darts;
+  targetEl.innerText=t;
   controls.innerHTML="";
 
   if(t===41){
     controls.innerHTML=`
-      <input id="score41" type="number" placeholder="Samlet score">
-      <br>
-      <button class="primary" onclick="submit41()">Registrér</button>`;
+      <button class="primary" onclick="record(41,true)">41</button>
+      <button class="danger" onclick="miss()">Over / under 41</button>`;
     return;
   }
 
   if(t==="D"){
     controls.innerHTML=`
-      <select id="field">
-        <option value="">Vælg felt</option>
-        ${[...Array(20)].map((_,i)=>`<option>${i+1}</option>`).join("")}
-        <option value="bull">Bull</option>
-      </select><br>
-      <button class="primary" onclick="doubleHit()">Kast</button>
+      <button onclick="record(2,true)">Double</button>
       <button class="danger" onclick="miss()">Miss</button>`;
     return;
   }
 
   if(t==="T"){
     controls.innerHTML=`
-      <select id="field">
-        <option value="">Vælg felt</option>
-        ${[...Array(20)].map((_,i)=>`<option>${i+1}</option>`).join("")}
-      </select><br>
-      <button class="primary" onclick="tripleHit()">Kast</button>
+      <button onclick="record(3,true)">Triple</button>
       <button class="danger" onclick="miss()">Miss</button>`;
     return;
   }
@@ -217,28 +210,14 @@ function update(){
   }
 }
 
-function doubleHit(){
-  const v=document.getElementById("field").value;
-  if(!v)return;
-  if(v==="bull") record(50,true);
-  else record(parseInt(v)*2,true);
-}
+function showWinner(){
+  game.style.display="none";
+  winnerScreen.style.display="block";
 
-function tripleHit(){
-  const v=document.getElementById("field").value;
-  if(!v)return;
-  record(parseInt(v)*3,true);
-}
-
-function submit41(){
-  const v=parseInt(document.getElementById("score41").value);
-  if(isNaN(v))return;
-  if(v===41){
-    players[current].score+=41;
-    hit=true;
-  }
-  darts=0;
-  update();
+  const sorted=[...players].sort((a,b)=>b.score-a.score);
+  resultsDiv.innerHTML=sorted.map((p,i)=>
+    `<p>${i===0?'🥇':i===1?'🥈':i===2?'🥉':''} ${p.name}: ${p.score}</p>`
+  ).join("");
 }
 </script>
 
