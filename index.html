@@ -20,16 +20,15 @@ body {
   padding: 20px;
   margin-bottom: 20px;
 }
-button {
-  padding: 12px 16px;
+button, select {
+  padding: 12px;
   margin: 6px;
-  border: none;
   border-radius: 8px;
   font-size: 16px;
 }
-.primary { background: #22c55e; color: black; }
-.secondary { background: #38bdf8; color: black; }
-.danger { background: #ef4444; color: white; }
+.primary { background: #22c55e; color: black; border: none; }
+.secondary { background: #38bdf8; color: black; border: none; }
+.danger { background: #ef4444; color: white; border: none; }
 .player {
   border-bottom: 1px solid #334155;
   padding: 8px 0;
@@ -54,16 +53,23 @@ button {
 
 <div class="card" id="game" style="display:none">
   <h2 id="currentPlayer"></h2>
-  <p>Næste mål: <strong id="target"></strong></p>
+  <p>Mål: <strong id="target"></strong></p>
   <p>Pile tilbage: <strong id="darts">3</strong></p>
 
   <div>
-    <button class="secondary" onclick="hit('number')">Tal ramt</button>
-    <button class="secondary" onclick="hit('double')">Double</button>
-    <button class="secondary" onclick="hit('triple')">Triple</button>
-    <button class="secondary" onclick="hit('bull')">Bull</button>
+    <select id="field">
+      ${Array.from({length:20},(_,i)=>`<option>${i+1}</option>`).join("")}
+      <option>25</option>
+    </select>
+
+    <select id="multiplier">
+      <option value="1">Single</option>
+      <option value="2">Double</option>
+      <option value="3">Triple</option>
+    </select>
   </div>
 
+  <button class="secondary" onclick="throwDart()">Kast pil</button>
   <button class="danger" onclick="nextTurn()">Næste tur</button>
 </div>
 
@@ -79,36 +85,29 @@ function addPlayer() {
   if (!name) return;
   players.push({ name, score: 0, targetIndex: 0 });
   document.getElementById("playerName").value = "";
-  renderPlayers();
   document.getElementById("game").style.display = "block";
   updateUI();
 }
 
-function renderPlayers() {
-  document.getElementById("players").innerHTML = players.map((p,i) =>
-    `<div class="player ${i===currentPlayerIndex?'active':''}">
-      ${p.name}: ${p.score} point
-    </div>`
-  ).join("");
-}
-
-function hit(type) {
+function throwDart() {
   if (darts === 0) return;
   darts--;
+
+  const field = parseInt(document.getElementById("field").value);
+  const mult = parseInt(document.getElementById("multiplier").value);
   const player = players[currentPlayerIndex];
   const target = targets[player.targetIndex];
 
   let success = false;
-  let points = 0;
+  let points = field * mult;
 
-  if (type === "bull" && target === "B") { success = true; points = 50; }
-  if (type === "double" && target === "D") { success = true; points = 40; }
-  if (type === "triple" && target === "T") { success = true; points = 60; }
-  if (type === "number" && typeof target === "number") { success = true; points = target; }
+  if (typeof target === "number" && field === target) success = true;
+  if (target === "D" && mult === 2) success = true;
+  if (target === "T" && mult === 3) success = true;
+  if (target === "B" && field === 25) { success = true; points = 50; }
 
   if (success) {
     player.score += points;
-    player.targetIndex++;
     hitThisTurn = true;
   }
 
@@ -117,9 +116,12 @@ function hit(type) {
 
 function nextTurn() {
   const player = players[currentPlayerIndex];
-  if (!hitThisTurn) {
+  if (hitThisTurn) {
+    player.targetIndex++;
+  } else {
     player.score = Math.floor(player.score / 2);
   }
+
   darts = 3;
   hitThisTurn = false;
   currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
@@ -127,7 +129,13 @@ function nextTurn() {
 }
 
 function updateUI() {
-  renderPlayers();
+  document.getElementById("players").innerHTML =
+    players.map((p,i)=>`
+      <div class="player ${i===currentPlayerIndex?'active':''}">
+        ${p.name}: ${p.score} point
+      </div>
+    `).join("");
+
   const player = players[currentPlayerIndex];
   document.getElementById("currentPlayer").innerText = "Tur: " + player.name;
   document.getElementById("target").innerText =
