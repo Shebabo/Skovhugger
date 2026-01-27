@@ -1,78 +1,137 @@
 <!DOCTYPE html>
 <html lang="da">
 <head>
-  <meta charset="UTF-8">
-  <title>Skovhugger Dart</title>
-  <style>
-    body { font-family: Arial; text-align: center; }
-    button { padding: 10px; margin: 5px; }
-  </style>
+<meta charset="UTF-8">
+<title>Skovhugger</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: white;
+  margin: 0;
+  padding: 20px;
+  text-align: center;
+}
+.card {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+button {
+  padding: 12px 16px;
+  margin: 6px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+}
+.primary { background: #22c55e; color: black; }
+.secondary { background: #38bdf8; color: black; }
+.danger { background: #ef4444; color: white; }
+.player {
+  border-bottom: 1px solid #334155;
+  padding: 8px 0;
+}
+.active {
+  color: #22c55e;
+  font-weight: bold;
+}
+</style>
 </head>
+
 <body>
 
-<h1>🎯 Skovhugger Dart</h1>
+<h1>🎯 Skovhugger</h1>
 
-<p>Næste mål: <strong id="target"></strong></p>
-<p>Point: <strong id="score">0</strong></p>
-<p>Pile tilbage: <strong id="darts">3</strong></p>
+<div class="card">
+  <input id="playerName" placeholder="Spillernavn">
+  <button class="primary" onclick="addPlayer()">Tilføj spiller</button>
+</div>
 
-<input id="hit" placeholder="Fx 15, D20, T19, B">
-<br>
-<button onclick="throwDart()">Kast pil</button>
-<button onclick="nextTurn()">Ny tur</button>
+<div class="card" id="players"></div>
+
+<div class="card" id="game" style="display:none">
+  <h2 id="currentPlayer"></h2>
+  <p>Næste mål: <strong id="target"></strong></p>
+  <p>Pile tilbage: <strong id="darts">3</strong></p>
+
+  <div>
+    <button class="secondary" onclick="hit('number')">Tal ramt</button>
+    <button class="secondary" onclick="hit('double')">Double</button>
+    <button class="secondary" onclick="hit('triple')">Triple</button>
+    <button class="secondary" onclick="hit('bull')">Bull</button>
+  </div>
+
+  <button class="danger" onclick="nextTurn()">Næste tur</button>
+</div>
 
 <script>
 const targets = [15,16,"D",17,"T",18,41,19,20,"B"];
-let targetIndex = 0;
-let score = 0;
+let players = [];
+let currentPlayerIndex = 0;
 let darts = 3;
-let hitTargetThisTurn = false;
+let hitThisTurn = false;
 
-updateUI();
+function addPlayer() {
+  const name = document.getElementById("playerName").value;
+  if (!name) return;
+  players.push({ name, score: 0, targetIndex: 0 });
+  document.getElementById("playerName").value = "";
+  renderPlayers();
+  document.getElementById("game").style.display = "block";
+  updateUI();
+}
 
-function throwDart() {
-  if (darts === 0) return alert("Ingen pile tilbage");
+function renderPlayers() {
+  document.getElementById("players").innerHTML = players.map((p,i) =>
+    `<div class="player ${i===currentPlayerIndex?'active':''}">
+      ${p.name}: ${p.score} point
+    </div>`
+  ).join("");
+}
 
-  const hit = document.getElementById("hit").value.toUpperCase();
-  document.getElementById("hit").value = "";
+function hit(type) {
+  if (darts === 0) return;
   darts--;
+  const player = players[currentPlayerIndex];
+  const target = targets[player.targetIndex];
 
-  const current = targets[targetIndex];
+  let success = false;
+  let points = 0;
 
-  if (
-    hit == current ||
-    (current === "D" && hit.startsWith("D")) ||
-    (current === "T" && hit.startsWith("T"))
-  ) {
-    let points = calculatePoints(hit);
-    score += points;
-    targetIndex++;
-    hitTargetThisTurn = true;
+  if (type === "bull" && target === "B") { success = true; points = 50; }
+  if (type === "double" && target === "D") { success = true; points = 40; }
+  if (type === "triple" && target === "T") { success = true; points = 60; }
+  if (type === "number" && typeof target === "number") { success = true; points = target; }
+
+  if (success) {
+    player.score += points;
+    player.targetIndex++;
+    hitThisTurn = true;
   }
 
   updateUI();
 }
 
-function calculatePoints(hit) {
-  if (hit === "B") return 50;
-  if (hit.startsWith("D")) return parseInt(hit.slice(1)) * 2;
-  if (hit.startsWith("T")) return parseInt(hit.slice(1)) * 3;
-  return parseInt(hit);
-}
-
 function nextTurn() {
-  if (!hitTargetThisTurn) {
-    score = Math.floor(score / 2);
+  const player = players[currentPlayerIndex];
+  if (!hitThisTurn) {
+    player.score = Math.floor(player.score / 2);
   }
   darts = 3;
-  hitTargetThisTurn = false;
+  hitThisTurn = false;
+  currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
   updateUI();
 }
 
 function updateUI() {
+  renderPlayers();
+  const player = players[currentPlayerIndex];
+  document.getElementById("currentPlayer").innerText = "Tur: " + player.name;
   document.getElementById("target").innerText =
-    targets[targetIndex] ?? "FÆRDIG 🎉";
-  document.getElementById("score").innerText = score;
+    targets[player.targetIndex] ?? "FÆRDIG 🎉";
   document.getElementById("darts").innerText = darts;
 }
 </script>
