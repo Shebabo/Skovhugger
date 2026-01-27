@@ -8,22 +8,12 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
 
-:root {
-  --bg:#020617;
-  --card:#0f172a;
-  --green:#22c55e;
-  --blue:#38bdf8;
-  --red:#ef4444;
-  --text:#e5e7eb;
-  --muted:#94a3b8;
-}
-
 body {
   margin:0;
   padding:20px;
   font-family:system-ui,sans-serif;
-  background:radial-gradient(circle at top,#020617,#000);
-  color:var(--text);
+  background:#020617;
+  color:#e5e7eb;
   text-align:center;
 }
 
@@ -31,50 +21,47 @@ body {
   font-family:'Bebas Neue',sans-serif;
   font-size:56px;
   letter-spacing:4px;
-  color:var(--green);
+  color:#22c55e;
   margin-bottom:20px;
 }
 
 .card {
-  background:linear-gradient(180deg,#0f172a,#020617);
-  border-radius:18px;
-  padding:20px;
-  margin-bottom:18px;
-  box-shadow:0 10px 30px rgba(0,0,0,.6);
+  background:#0f172a;
+  border-radius:14px;
+  padding:18px;
+  margin-bottom:16px;
 }
 
-button,select,input {
-  padding:14px 16px;
-  margin:6px;
-  border-radius:12px;
+button,input,select {
   font-size:16px;
+  padding:14px;
+  margin:6px;
+  border-radius:10px;
   border:none;
 }
 
 input,select {
   background:#020617;
-  color:var(--text);
+  color:white;
   border:1px solid #1e293b;
 }
 
 button {
-  cursor:pointer;
-  font-weight:600;
-  transition:transform .05s,opacity .15s;
+  background:#1e293b;
+  color:white;
 }
-button:active { transform:scale(.97); }
 
-.green { background:var(--green); color:black; }
-.blue { background:var(--blue); color:black; }
-.red { background:var(--red); color:white; }
+button.primary { background:#22c55e; color:black; }
+button.secondary { background:#38bdf8; color:black; }
+button.danger { background:#ef4444; }
 
 .player {
-  padding:8px 0;
+  padding:6px 0;
   border-bottom:1px solid #1e293b;
-  color:var(--muted);
+  color:#94a3b8;
 }
 .player.active {
-  color:var(--green);
+  color:#22c55e;
   font-weight:bold;
 }
 
@@ -94,8 +81,8 @@ button:active { transform:scale(.97); }
 <div class="card">
   <input id="playerName" placeholder="Spillernavn">
   <br>
-  <button class="green" onclick="addPlayer()">Tilføj spiller</button>
-  <button class="red" onclick="startNewGame()">Nyt spil</button>
+  <button class="primary" onclick="addPlayer()">Tilføj spiller</button>
+  <button class="danger" onclick="startNewGame()">Nyt spil</button>
 </div>
 
 <div class="card" id="players"></div>
@@ -104,17 +91,16 @@ button:active { transform:scale(.97); }
   <h2 id="currentPlayer"></h2>
   <p>Mål: <strong id="target"></strong></p>
   <p>Pile tilbage: <strong id="darts">3</strong></p>
-  <p id="sum41" style="display:none">Samlet: <strong>0</strong></p>
 
   <div id="controls"></div>
 
-  <button class="blue" onclick="undo()">↩️ Fortryd pil</button><br>
-  <button class="red" onclick="nextTurn()">Næste tur</button>
+  <button class="secondary" onclick="undo()">↩️ Fortryd pil</button><br>
+  <button class="danger" onclick="nextTurn()">Næste tur</button>
 </div>
 
 <script>
 const targets=[15,16,"D",17,"T",18,41,19,20,"B"];
-let players=[],current=0,darts=3,hit=false,history=[],sum41=0;
+let players=[],current=0,darts=3,hit=false,history=[];
 
 function addPlayer(){
   const n=playerName.value.trim();
@@ -127,7 +113,7 @@ function addPlayer(){
 
 function startNewGame(){
   players.forEach(p=>{p.score=0;p.target=0});
-  current=0;darts=3;hit=false;history=[];sum41=0;
+  current=0;darts=3;hit=false;history=[];
   update();
 }
 
@@ -152,15 +138,16 @@ function undo(){
     players[current].score-=l.points;
     hit=history.some(h=>h.success);
   }
-  if(targets[players[current].target]===41) sum41-=l.points;
   update();
 }
 
 function nextTurn(){
-  if(!hit) players[current].score=Math.floor(players[current].score/2);
+  if(!hit){
+    players[current].score=Math.floor(players[current].score/2);
+  }
   players[current].target++;
   current=(current+1)%players.length;
-  darts=3;hit=false;history=[];sum41=0;
+  darts=3;hit=false;history=[];
   update();
 }
 
@@ -173,102 +160,88 @@ function update(){
   currentPlayer.innerText="Tur: "+p.name;
   target.innerText=t??"FÆRDIG 🎉";
   dartsSpan.innerText=darts;
-
   controls.innerHTML="";
-  sum41El.style.display="none";
 
   if(t===41){
-    sum41El.style.display="block";
-    sum41El.querySelector("strong").innerText=sum41;
     controls.innerHTML=`
-      <div class="row">
-        <button class="blue" onclick="add41(20)">20</button>
-        <button class="blue" onclick="add41(19)">19</button>
-        <button class="blue" onclick="add41(18)">18</button>
-        <button class="blue" onclick="add41(1)">1</button>
-        <button class="red" onclick="miss()">Miss</button>
-      </div>`;
+      <input id="score41" type="number" placeholder="Samlet score">
+      <br>
+      <button class="primary" onclick="submit41()">Registrér</button>`;
     return;
   }
 
   if(t==="D"){
-    let opts='<option value="">Vælg felt</option>';
-    for(let i=1;i<=20;i++)opts+=`<option value="${i}">${i}</option>`;
-    opts+=`<option value="bull">Bull</option>`;
     controls.innerHTML=`
-      <div class="row">
-        <select id="field">${opts}</select>
-        <button class="green" onclick="doubleHit()">Kast</button>
-        <button class="red" onclick="miss()">Miss</button>
-      </div>`;
+      <select id="field">
+        <option value="">Vælg felt</option>
+        ${[...Array(20)].map((_,i)=>`<option>${i+1}</option>`).join("")}
+        <option value="bull">Bull</option>
+      </select>
+      <br>
+      <button class="primary" onclick="doubleHit()">Kast</button>
+      <button class="danger" onclick="miss()">Miss</button>`;
     return;
   }
 
   if(t==="T"){
-    let opts='<option value="">Vælg felt</option>';
-    for(let i=1;i<=20;i++)opts+=`<option value="${i}">${i}</option>`;
     controls.innerHTML=`
-      <div class="row">
-        <select id="field">${opts}</select>
-        <button class="green" onclick="tripleHit()">Kast</button>
-        <button class="red" onclick="miss()">Miss</button>
-      </div>`;
+      <select id="field">
+        <option value="">Vælg felt</option>
+        ${[...Array(20)].map((_,i)=>`<option>${i+1}</option>`).join("")}
+      </select>
+      <br>
+      <button class="primary" onclick="tripleHit()">Kast</button>
+      <button class="danger" onclick="miss()">Miss</button>`;
     return;
   }
 
   if(t==="B"){
     controls.innerHTML=`
-      <div class="row">
-        <button class="green" onclick="record(25,true)">Single Bull</button>
-        <button class="green" onclick="record(50,true)">Double Bull</button>
-        <button class="red" onclick="miss()">Miss</button>
-      </div>`;
+      <button class="primary" onclick="record(25,true)">Single Bull</button>
+      <button class="primary" onclick="record(50,true)">Double Bull</button>
+      <button class="danger" onclick="miss()">Miss</button>`;
     return;
   }
 
   if(typeof t==="number"){
     controls.innerHTML=`
-      <div class="row">
-        <button class="blue" onclick="record(t,true)">Single</button>
-        <button class="blue" onclick="record(t*2,true)">Double</button>
-        <button class="blue" onclick="record(t*3,true)">Triple</button>
-      </div>`;
+      <button onclick="record(t,true)">Single</button>
+      <button onclick="record(t*2,true)">Double</button>
+      <button onclick="record(t*3,true)">Triple</button>`;
   }
 }
 
 function doubleHit(){
-  const v=document.getElementById("field").value;
+  const v=field.value;
   if(!v)return;
   if(v==="bull") record(50,true);
   else record(parseInt(v)*2,true);
 }
 
 function tripleHit(){
-  const v=document.getElementById("field").value;
+  const v=field.value;
   if(!v)return;
   record(parseInt(v)*3,true);
 }
 
-function add41(v){
-  if(darts===0)return;
-  darts--;
-  sum41+=v;
-  history.push({points:v,success:false});
-  if(sum41===41){
+function submit41(){
+  const v=parseInt(score41.value);
+  if(isNaN(v))return;
+  if(v===41){
     players[current].score+=41;
     hit=true;
   }
+  darts=0;
   update();
 }
 
-const playersDiv=document.getElementById("players");
+const playersDiv=playersDiv=document.getElementById("players");
 const game=document.getElementById("game");
 const playerName=document.getElementById("playerName");
 const currentPlayer=document.getElementById("currentPlayer");
 const target=document.getElementById("target");
 const dartsSpan=document.getElementById("darts");
 const controls=document.getElementById("controls");
-const sum41El=document.getElementById("sum41");
 </script>
 
 </body>
