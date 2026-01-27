@@ -6,36 +6,76 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
+:root {
+  --bg: #020617;
+  --card: #0f172a;
+  --accent: #22c55e;
+  --blue: #38bdf8;
+  --danger: #ef4444;
+  --text: #e5e7eb;
+  --muted: #94a3b8;
+}
+
 body {
-  font-family: Arial, sans-serif;
-  background: #0f172a;
-  color: white;
+  margin: 0;
   padding: 20px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: radial-gradient(circle at top, #020617, #000);
+  color: var(--text);
   text-align: center;
 }
-.card {
-  background: #1e293b;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 16px;
+
+h1 {
+  margin-bottom: 10px;
+  letter-spacing: 1px;
 }
+
+.card {
+  background: linear-gradient(180deg, #0f172a, #020617);
+  border-radius: 18px;
+  padding: 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+}
+
 button, select, input {
-  padding: 10px;
+  padding: 12px 14px;
   margin: 6px;
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: 16px;
   border: none;
 }
-.primary { background: #22c55e; color: black; }
-.secondary { background: #38bdf8; color: black; }
-.danger { background: #ef4444; color: white; }
-.player {
-  padding: 6px 0;
-  border-bottom: 1px solid #334155;
+
+input, select {
+  background: #020617;
+  color: var(--text);
+  border: 1px solid #1e293b;
 }
-.active {
-  color: #22c55e;
+
+button {
+  cursor: pointer;
+  transition: transform .05s ease, opacity .2s;
+}
+button:active { transform: scale(0.97); }
+button:hover { opacity: .9; }
+
+.primary { background: var(--accent); color: black; }
+.secondary { background: var(--blue); color: black; }
+.danger { background: var(--danger); color: white; }
+
+.player {
+  padding: 8px 0;
+  border-bottom: 1px solid #1e293b;
+  color: var(--muted);
+}
+.player.active {
+  color: var(--accent);
   font-weight: bold;
+}
+
+.big {
+  font-size: 18px;
+  padding: 14px 18px;
 }
 </style>
 </head>
@@ -46,7 +86,8 @@ button, select, input {
 
 <div class="card">
   <input id="playerName" placeholder="Spillernavn">
-  <button class="primary" onclick="addPlayer()">Tilføj spiller</button>
+  <br>
+  <button class="primary big" onclick="addPlayer()">Tilføj spiller</button>
   <button class="danger" onclick="startNewGame()">Nyt spil</button>
 </div>
 
@@ -96,22 +137,19 @@ function throwDart(mult, fieldOverride=null) {
 
   const player = players[currentPlayerIndex];
   const target = targets[player.targetIndex];
-  let field = fieldOverride ?? target;
-  let points = 0;
   let success = false;
+  let points = 0;
 
   if (typeof target === "number") {
     success = true;
     points = target * mult;
   }
-  if (target === "D" && mult === 2) {
+
+  if ((target === "D" || target === "T") && fieldOverride > 0) {
     success = true;
-    points = field * 2;
+    points = fieldOverride * mult;
   }
-  if (target === "T" && mult === 3) {
-    success = true;
-    points = field * 3;
-  }
+
   if (target === "B") {
     success = true;
     points = 50;
@@ -129,7 +167,7 @@ function throwDart(mult, fieldOverride=null) {
 }
 
 function undo() {
-  if (history.length === 0) return;
+  if (!history.length) return;
   const last = history.pop();
   darts++;
   if (last.success) {
@@ -140,11 +178,11 @@ function undo() {
 }
 
 function nextTurn() {
+  const player = players[currentPlayerIndex];
   if (!hitThisTurn) {
-    players[currentPlayerIndex].score =
-      Math.floor(players[currentPlayerIndex].score / 2);
+    player.score = Math.floor(player.score / 2);
   }
-  players[currentPlayerIndex].targetIndex++;
+  player.targetIndex++;
   darts = 3;
   hitThisTurn = false;
   history = [];
@@ -168,21 +206,21 @@ function updateUI() {
 
   if (typeof t === "number") {
     controls.innerHTML = `
-      <button class="secondary" onclick="throwDart(1)">Single</button>
-      <button class="secondary" onclick="throwDart(2)">Double</button>
-      <button class="secondary" onclick="throwDart(3)">Triple</button>`;
+      <button class="secondary big" onclick="throwDart(1)">Single</button>
+      <button class="secondary big" onclick="throwDart(2)">Double</button>
+      <button class="secondary big" onclick="throwDart(3)">Triple</button>`;
   } else if (t === "D" || t === "T") {
-    let opts = "";
+    let opts = `<option value="0">Miss (0)</option>`;
     for (let i=1;i<=20;i++) opts += `<option>${i}</option>`;
     controls.innerHTML = `
       <select id="fieldSelect">${opts}</select>
-      <button class="secondary"
+      <button class="secondary big"
         onclick="throwDart(${t==='D'?2:3}, parseInt(fieldSelect.value))">
         Kast
       </button>`;
   } else if (t === "B") {
     controls.innerHTML =
-      `<button class="secondary" onclick="throwDart(1)">Bull</button>`;
+      `<button class="secondary big" onclick="throwDart(1)">Bull</button>`;
   }
 }
 
