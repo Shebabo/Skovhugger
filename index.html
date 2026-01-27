@@ -10,7 +10,6 @@ body {
   font-family: Arial, sans-serif;
   background: #0f172a;
   color: white;
-  margin: 0;
   padding: 20px;
   text-align: center;
 }
@@ -58,84 +57,68 @@ button, select, input {
   <p>Mål: <strong id="target"></strong></p>
   <p>Pile tilbage: <strong id="darts">3</strong></p>
 
-  <div>
-    <select id="field">
-      <option value="">Felt</option>
-      <script>
-        for (let i = 1; i <= 20; i++) {
-          document.write(`<option value="${i}">${i}</option>`);
-        }
-      </script>
-      <option value="25">Bull</option>
-    </select>
+  <div id="controls"></div>
 
-    <select id="multiplier">
-      <option value="1">Single</option>
-      <option value="2">Double</option>
-      <option value="3">Triple</option>
-    </select>
-  </div>
-
-  <button class="secondary" onclick="throwDart()">Kast pil</button>
+  <button class="secondary" onclick="undo()">↩️ Fortryd seneste pil</button>
+  <br>
   <button class="danger" onclick="nextTurn()">Næste tur</button>
 </div>
 
 <script>
-const targets = [15, 16, "D", 17, "T", 18, 41, 19, 20, "B"];
+const targets = [15,16,"D",17,"T",18,41,19,20,"B"];
 
 let players = [];
 let currentPlayerIndex = 0;
 let darts = 3;
 let hitThisTurn = false;
+let history = [];
 
 function addPlayer() {
-  const name = document.getElementById("playerName").value.trim();
+  const name = playerName.value.trim();
   if (!name) return;
-
-  players.push({
-    name,
-    score: 0,
-    targetIndex: 0
-  });
-
-  document.getElementById("playerName").value = "";
-  document.getElementById("game").style.display = "block";
+  players.push({ name, score: 0, targetIndex: 0 });
+  playerName.value = "";
+  game.style.display = "block";
   updateUI();
 }
 
 function startNewGame() {
-  players.forEach(p => {
-    p.score = 0;
-    p.targetIndex = 0;
-  });
+  players.forEach(p => { p.score = 0; p.targetIndex = 0; });
   currentPlayerIndex = 0;
   darts = 3;
   hitThisTurn = false;
+  history = [];
   updateUI();
 }
 
-function throwDart() {
+function throwDart(mult, fieldOverride=null) {
   if (darts === 0) return;
-
-  const field = parseInt(document.getElementById("field").value);
-  const mult = parseInt(document.getElementById("multiplier").value);
-  if (!field) return alert("Vælg et felt");
-
-  darts--;
 
   const player = players[currentPlayerIndex];
   const target = targets[player.targetIndex];
-
+  let field = fieldOverride ?? target;
+  let points = 0;
   let success = false;
-  let points = field * mult;
 
-  if (typeof target === "number" && field === target) success = true;
-  if (target === "D" && mult === 2) success = true;
-  if (target === "T" && mult === 3) success = true;
-  if (target === "B" && field === 25) {
+  if (typeof target === "number") {
+    success = true;
+    points = target * mult;
+  }
+  if (target === "D" && mult === 2) {
+    success = true;
+    points = field * 2;
+  }
+  if (target === "T" && mult === 3) {
+    success = true;
+    points = field * 3;
+  }
+  if (target === "B") {
     success = true;
     points = 50;
   }
+
+  darts--;
+  history.push({ points, success });
 
   if (success) {
     player.score += points;
@@ -145,34 +128,71 @@ function throwDart() {
   updateUI();
 }
 
-function nextTurn() {
-  const player = players[currentPlayerIndex];
-
-  if (!hitThisTurn) {
-    player.score = Math.floor(player.score / 2);
+function undo() {
+  if (history.length === 0) return;
+  const last = history.pop();
+  darts++;
+  if (last.success) {
+    players[currentPlayerIndex].score -= last.points;
+    hitThisTurn = history.some(h => h.success);
   }
+  updateUI();
+}
 
-  player.targetIndex++;
+function nextTurn() {
+  if (!hitThisTurn) {
+    players[currentPlayerIndex].score =
+      Math.floor(players[currentPlayerIndex].score / 2);
+  }
+  players[currentPlayerIndex].targetIndex++;
   darts = 3;
   hitThisTurn = false;
+  history = [];
   currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
   updateUI();
 }
 
 function updateUI() {
-  document.getElementById("players").innerHTML =
-    players.map((p,i)=>`
-      <div class="player ${i===currentPlayerIndex?'active':''}">
-        ${p.name}: ${p.score} point
-      </div>
-    `).join("");
+  playersDiv.innerHTML = players.map((p,i)=>
+    `<div class="player ${i===currentPlayerIndex?'active':''}">
+      ${p.name}: ${p.score} point
+    </div>`).join("");
 
   const player = players[currentPlayerIndex];
-  document.getElementById("currentPlayer").innerText = "Tur: " + player.name;
-  document.getElementById("target").innerText =
-    targets[player.targetIndex] ?? "FÆRDIG 🎉";
-  document.getElementById("darts").innerText = darts;
+  currentPlayer.innerText = "Tur: " + player.name;
+  target.innerText = targets[player.targetIndex] ?? "FÆRDIG 🎉";
+  dartsSpan.innerText = darts;
+
+  controls.innerHTML = "";
+  const t = targets[player.targetIndex];
+
+  if (typeof t === "number") {
+    controls.innerHTML = `
+      <button class="secondary" onclick="throwDart(1)">Single</button>
+      <button class="secondary" onclick="throwDart(2)">Double</button>
+      <button class="secondary" onclick="throwDart(3)">Triple</button>`;
+  } else if (t === "D" || t === "T") {
+    let opts = "";
+    for (let i=1;i<=20;i++) opts += `<option>${i}</option>`;
+    controls.innerHTML = `
+      <select id="fieldSelect">${opts}</select>
+      <button class="secondary"
+        onclick="throwDart(${t==='D'?2:3}, parseInt(fieldSelect.value))">
+        Kast
+      </button>`;
+  } else if (t === "B") {
+    controls.innerHTML =
+      `<button class="secondary" onclick="throwDart(1)">Bull</button>`;
+  }
 }
+
+const playersDiv = document.getElementById("players");
+const game = document.getElementById("game");
+const playerName = document.getElementById("playerName");
+const currentPlayer = document.getElementById("currentPlayer");
+const target = document.getElementById("target");
+const dartsSpan = document.getElementById("darts");
+const controls = document.getElementById("controls");
 </script>
 
 </body>
