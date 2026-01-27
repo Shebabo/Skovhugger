@@ -17,21 +17,22 @@ body {
 .card {
   background: #1e293b;
   border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
+  padding: 16px;
+  margin-bottom: 16px;
 }
-button, select {
-  padding: 12px;
+button, select, input {
+  padding: 10px;
   margin: 6px;
   border-radius: 8px;
   font-size: 16px;
+  border: none;
 }
-.primary { background: #22c55e; color: black; border: none; }
-.secondary { background: #38bdf8; color: black; border: none; }
-.danger { background: #ef4444; color: white; border: none; }
+.primary { background: #22c55e; color: black; }
+.secondary { background: #38bdf8; color: black; }
+.danger { background: #ef4444; color: white; }
 .player {
+  padding: 6px 0;
   border-bottom: 1px solid #334155;
-  padding: 8px 0;
 }
 .active {
   color: #22c55e;
@@ -47,6 +48,7 @@ button, select {
 <div class="card">
   <input id="playerName" placeholder="Spillernavn">
   <button class="primary" onclick="addPlayer()">Tilføj spiller</button>
+  <button class="danger" onclick="startNewGame()">Nyt spil</button>
 </div>
 
 <div class="card" id="players"></div>
@@ -58,8 +60,13 @@ button, select {
 
   <div>
     <select id="field">
-      ${Array.from({length:20},(_,i)=>`<option>${i+1}</option>`).join("")}
-      <option>25</option>
+      <option value="">Felt</option>
+      <script>
+        for (let i = 1; i <= 20; i++) {
+          document.write(`<option value="${i}">${i}</option>`);
+        }
+      </script>
+      <option value="25">Bull</option>
     </select>
 
     <select id="multiplier">
@@ -74,27 +81,48 @@ button, select {
 </div>
 
 <script>
-const targets = [15,16,"D",17,"T",18,41,19,20,"B"];
+const targets = [15, 16, "D", 17, "T", 18, 41, 19, 20, "B"];
+
 let players = [];
 let currentPlayerIndex = 0;
 let darts = 3;
 let hitThisTurn = false;
 
 function addPlayer() {
-  const name = document.getElementById("playerName").value;
+  const name = document.getElementById("playerName").value.trim();
   if (!name) return;
-  players.push({ name, score: 0, targetIndex: 0 });
+
+  players.push({
+    name,
+    score: 0,
+    targetIndex: 0
+  });
+
   document.getElementById("playerName").value = "";
   document.getElementById("game").style.display = "block";
   updateUI();
 }
 
+function startNewGame() {
+  players.forEach(p => {
+    p.score = 0;
+    p.targetIndex = 0;
+  });
+  currentPlayerIndex = 0;
+  darts = 3;
+  hitThisTurn = false;
+  updateUI();
+}
+
 function throwDart() {
   if (darts === 0) return;
-  darts--;
 
   const field = parseInt(document.getElementById("field").value);
   const mult = parseInt(document.getElementById("multiplier").value);
+  if (!field) return alert("Vælg et felt");
+
+  darts--;
+
   const player = players[currentPlayerIndex];
   const target = targets[player.targetIndex];
 
@@ -104,7 +132,10 @@ function throwDart() {
   if (typeof target === "number" && field === target) success = true;
   if (target === "D" && mult === 2) success = true;
   if (target === "T" && mult === 3) success = true;
-  if (target === "B" && field === 25) { success = true; points = 50; }
+  if (target === "B" && field === 25) {
+    success = true;
+    points = 50;
+  }
 
   if (success) {
     player.score += points;
@@ -116,12 +147,12 @@ function throwDart() {
 
 function nextTurn() {
   const player = players[currentPlayerIndex];
-  if (hitThisTurn) {
-    player.targetIndex++;
-  } else {
+
+  if (!hitThisTurn) {
     player.score = Math.floor(player.score / 2);
   }
 
+  player.targetIndex++;
   darts = 3;
   hitThisTurn = false;
   currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
