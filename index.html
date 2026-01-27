@@ -8,16 +8,16 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
 
-body {
+body{
   margin:0;
   padding:20px;
-  font-family:system-ui,sans-serif;
   background:#020617;
   color:#e5e7eb;
+  font-family:system-ui,sans-serif;
   text-align:center;
 }
 
-.logo {
+.logo{
   font-family:'Bebas Neue',sans-serif;
   font-size:56px;
   letter-spacing:4px;
@@ -25,51 +25,44 @@ body {
   margin-bottom:20px;
 }
 
-.card {
+.card{
   background:#0f172a;
-  border-radius:14px;
   padding:18px;
+  border-radius:14px;
   margin-bottom:16px;
 }
 
-button,input,select {
-  font-size:16px;
+button,input,select{
   padding:14px;
-  margin:6px;
+  font-size:16px;
   border-radius:10px;
   border:none;
+  margin:6px;
 }
 
-input,select {
+input,select{
   background:#020617;
   color:white;
   border:1px solid #1e293b;
 }
 
-button {
+button{
   background:#1e293b;
   color:white;
 }
 
-button.primary { background:#22c55e; color:black; }
-button.secondary { background:#38bdf8; color:black; }
-button.danger { background:#ef4444; }
+.primary{ background:#22c55e; color:black; }
+.secondary{ background:#38bdf8; color:black; }
+.danger{ background:#ef4444; }
 
-.player {
+.player{
   padding:6px 0;
   border-bottom:1px solid #1e293b;
   color:#94a3b8;
 }
-.player.active {
+.player.active{
   color:#22c55e;
   font-weight:bold;
-}
-
-.row {
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-  gap:8px;
 }
 </style>
 </head>
@@ -90,7 +83,7 @@ button.danger { background:#ef4444; }
 <div class="card" id="game" style="display:none">
   <h2 id="currentPlayer"></h2>
   <p>Mål: <strong id="target"></strong></p>
-  <p>Pile tilbage: <strong id="darts">3</strong></p>
+  <p>Pile tilbage: <strong id="darts"></strong></p>
 
   <div id="controls"></div>
 
@@ -100,12 +93,25 @@ button.danger { background:#ef4444; }
 
 <script>
 const targets=[15,16,"D",17,"T",18,41,19,20,"B"];
-let players=[],current=0,darts=3,hit=false,history=[];
+
+let players=[];
+let current=0;
+let darts=3;
+let hit=false;
+let history=[];
+
+const playersDiv=document.getElementById("players");
+const game=document.getElementById("game");
+const playerName=document.getElementById("playerName");
+const currentPlayer=document.getElementById("currentPlayer");
+const targetEl=document.getElementById("target");
+const dartsEl=document.getElementById("darts");
+const controls=document.getElementById("controls");
 
 function addPlayer(){
-  const n=playerName.value.trim();
-  if(!n)return;
-  players.push({name:n,score:0,target:0});
+  const name=playerName.value.trim();
+  if(!name)return;
+  players.push({name,score:0,target:0});
   playerName.value="";
   game.style.display="block";
   update();
@@ -132,10 +138,10 @@ function miss(){ record(0,false); }
 
 function undo(){
   if(!history.length)return;
-  const l=history.pop();
+  const last=history.pop();
   darts++;
-  if(l.success){
-    players[current].score-=l.points;
+  if(last.success){
+    players[current].score-=last.points;
     hit=history.some(h=>h.success);
   }
   update();
@@ -156,10 +162,12 @@ function update(){
     `<div class="player ${i===current?'active':''}">${p.name}: ${p.score}</div>`
   ).join("");
 
-  const p=players[current],t=targets[p.target];
+  const p=players[current];
+  const t=targets[p.target];
+
   currentPlayer.innerText="Tur: "+p.name;
-  target.innerText=t??"FÆRDIG 🎉";
-  dartsSpan.innerText=darts;
+  targetEl.innerText=t ?? "FÆRDIG 🎉";
+  dartsEl.innerText=darts;
   controls.innerHTML="";
 
   if(t===41){
@@ -176,8 +184,7 @@ function update(){
         <option value="">Vælg felt</option>
         ${[...Array(20)].map((_,i)=>`<option>${i+1}</option>`).join("")}
         <option value="bull">Bull</option>
-      </select>
-      <br>
+      </select><br>
       <button class="primary" onclick="doubleHit()">Kast</button>
       <button class="danger" onclick="miss()">Miss</button>`;
     return;
@@ -188,8 +195,7 @@ function update(){
       <select id="field">
         <option value="">Vælg felt</option>
         ${[...Array(20)].map((_,i)=>`<option>${i+1}</option>`).join("")}
-      </select>
-      <br>
+      </select><br>
       <button class="primary" onclick="tripleHit()">Kast</button>
       <button class="danger" onclick="miss()">Miss</button>`;
     return;
@@ -205,27 +211,27 @@ function update(){
 
   if(typeof t==="number"){
     controls.innerHTML=`
-      <button onclick="record(t,true)">Single</button>
-      <button onclick="record(t*2,true)">Double</button>
-      <button onclick="record(t*3,true)">Triple</button>`;
+      <button onclick="record(${t},true)">Single</button>
+      <button onclick="record(${t*2},true)">Double</button>
+      <button onclick="record(${t*3},true)">Triple</button>`;
   }
 }
 
 function doubleHit(){
-  const v=field.value;
+  const v=document.getElementById("field").value;
   if(!v)return;
   if(v==="bull") record(50,true);
   else record(parseInt(v)*2,true);
 }
 
 function tripleHit(){
-  const v=field.value;
+  const v=document.getElementById("field").value;
   if(!v)return;
   record(parseInt(v)*3,true);
 }
 
 function submit41(){
-  const v=parseInt(score41.value);
+  const v=parseInt(document.getElementById("score41").value);
   if(isNaN(v))return;
   if(v===41){
     players[current].score+=41;
@@ -234,14 +240,6 @@ function submit41(){
   darts=0;
   update();
 }
-
-const playersDiv=playersDiv=document.getElementById("players");
-const game=document.getElementById("game");
-const playerName=document.getElementById("playerName");
-const currentPlayer=document.getElementById("currentPlayer");
-const target=document.getElementById("target");
-const dartsSpan=document.getElementById("darts");
-const controls=document.getElementById("controls");
 </script>
 
 </body>
