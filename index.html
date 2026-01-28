@@ -73,7 +73,7 @@ button{
 
 <div class="logo">SKOVHUGGER</div>
 
-<div class="card" id="setup">
+<div class="card">
   <input id="playerName" placeholder="Spillernavn">
   <br>
   <button class="primary" onclick="addPlayer()">Tilføj spiller</button>
@@ -183,8 +183,8 @@ function update(){
 
   if(t===41){
     controls.innerHTML=`
-      <button class="primary" onclick="record(41,true)">41</button>
-      <button class="danger" onclick="miss()">Over / under 41</button>`;
+      <button class="primary" onclick="hit41()">41</button>
+      <button class="danger" onclick="fail41()">Over / under 41</button>`;
     return;
   }
 
@@ -238,6 +238,27 @@ function tripleHit(){
   const v=document.getElementById("field").value;
   if(!v)return;
   record(parseInt(v)*3,true);
+}
+
+/* 41 – endelig korrekt */
+function hit41(){
+  players[current].score += 41;
+  players[current].target++;
+  current = (current + 1) % players.length;
+  darts = 3;
+  hit = false;
+  history = [];
+  update();
+}
+
+function fail41(){
+  players[current].score = Math.floor(players[current].score / 2);
+  players[current].target++;
+  current = (current + 1) % players.length;
+  darts = 3;
+  hit = false;
+  history = [];
+  update();
 }
 
 function showWinner(){
