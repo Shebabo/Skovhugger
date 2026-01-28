@@ -5,6 +5,10 @@
 <title>Skovhugger</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#22c55e">
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
 
@@ -219,12 +223,10 @@ function update(){
     return;
   }
 
-  if(typeof t==="number"){
-    controls.innerHTML=`
-      <button onclick="record(${t},true)">Single</button>
-      <button onclick="record(${t*2},true)">Double</button>
-      <button onclick="record(${t*3},true)">Triple</button>`;
-  }
+  controls.innerHTML=`
+    <button onclick="record(${t},true)">Single</button>
+    <button onclick="record(${t*2},true)">Double</button>
+    <button onclick="record(${t*3},true)">Triple</button>`;
 }
 
 function doubleHit(){
@@ -240,24 +242,19 @@ function tripleHit(){
   record(parseInt(v)*3,true);
 }
 
-/* 41 – endelig korrekt */
 function hit41(){
-  players[current].score += 41;
+  players[current].score+=41;
   players[current].target++;
-  current = (current + 1) % players.length;
-  darts = 3;
-  hit = false;
-  history = [];
+  current=(current+1)%players.length;
+  darts=3;hit=false;history=[];
   update();
 }
 
 function fail41(){
-  players[current].score = Math.floor(players[current].score / 2);
+  players[current].score=Math.floor(players[current].score/2);
   players[current].target++;
-  current = (current + 1) % players.length;
-  darts = 3;
-  hit = false;
-  history = [];
+  current=(current+1)%players.length;
+  darts=3;hit=false;history=[];
   update();
 }
 
@@ -268,6 +265,13 @@ function showWinner(){
   resultsDiv.innerHTML=sorted.map((p,i)=>
     `<p>${i===0?'🥇':i===1?'🥈':i===2?'🥉':''} ${p.name}: ${p.score}</p>`
   ).join("");
+}
+</script>
+
+<!-- Service Worker -->
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
 }
 </script>
 
